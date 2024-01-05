@@ -7,7 +7,7 @@ int get_available_port(int& sockfd) {
     sockaddr_in addr;
     addr.sin_family = AF_INET;
     addr.sin_addr.s_addr = htonl(INADDR_ANY);
-    addr.sin_port = 0;  // Let OS choose the port
+    addr.sin_port = 0;  // this allows the OS to choose whatever port is available
 
     if (bind(sockfd, (struct sockaddr*)&addr, sizeof(addr)) < 0) {
         perror("bind failed");
@@ -31,13 +31,12 @@ int main() {
     }
 
     int port = get_available_port(sockfd);
+    
     if (port < 0) {
-        return 1;  // Port assignment failed
+        return 1;  // if no port available 
     }
 
     std::cout << "Server running on port " << port << std::endl;
-
-    // Additional code for listening and accepting connections
 
     close(sockfd);
     return 0;
