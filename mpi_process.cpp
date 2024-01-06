@@ -8,8 +8,9 @@
 #include <netinet/in.h>
 #include <unistd.h>
 #include <arpa/inet.h>
-// iss
 #include <sstream>
+// accumulate 
+#include <numeric>
 
 class MPIProcess {
     int listen_sock;
@@ -106,6 +107,26 @@ public:
         }
         connection_mutex.unlock();
     }
+
+    // New functionality: disconnect from a process
+    void disconnect_from_process(int proc_id) {
+        std::cout << "Disconnecting from process " << proc_id << std::endl;
+        connection_mutex.lock();
+        auto it = connections.find(proc_id);
+        if (it != connections.end()) {
+            close(it->second);
+            connections.erase(it);
+            std::cout << "Successfully disconnected from process " << proc_id << std::endl;
+        } else {
+            std::cout << "No connection found for process " << proc_id << std::endl;
+        }
+        connection_mutex.unlock();
+    }
+
+    ~MPIProcess() {
+        std::cout << "Closing listen socket" << std::endl;
+        close(listen_sock);
+    }
 };
 
 int main(int argc, char* argv[]) {
@@ -141,6 +162,9 @@ int main(int argc, char* argv[]) {
             std::getline(std::cin, message);
             proc.connect_to_process(1, "127.0.0.1", remote_port);
             proc.send_message(1, message);
+        } else if (cmd == "disconnect") {
+            iss >> remote_port;
+            proc.disconnect_from_process(remote_port);
         } else {
             std::cout << "Unknown command" << std::endl;
         }
@@ -148,3 +172,4 @@ int main(int argc, char* argv[]) {
 
     return 0;
 }
+
