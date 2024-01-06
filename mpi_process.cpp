@@ -8,6 +8,8 @@
 #include <netinet/in.h>
 #include <unistd.h>
 #include <arpa/inet.h>
+// iss
+#include <sstream>
 
 class MPIProcess {
     int listen_sock;
@@ -107,26 +109,41 @@ public:
 };
 
 int main(int argc, char* argv[]) {
-    if (argc < 3) {
-        std::cerr << "Usage: " << argv[0] << " [port] [remote_port]" << std::endl;
+    if (argc < 2) {
+        std::cerr << "Usage: " << argv[0] << " [port]" << std::endl;
         return 1;
     }
 
     int port = std::stoi(argv[1]);
-    int remote_port = std::stoi(argv[2]);
-
     MPIProcess proc(port);
     std::cout << "MPIProcess created on port " << port << std::endl;
 
-    // Sleep to allow other processes to start
-    std::this_thread::sleep_for(std::chrono::seconds(5));
+    std::string input, cmd;
+    int remote_port;
+    std::string message;
 
-    proc.connect_to_process(1, "127.0.0.1", remote_port);
-    proc.send_message(1, "Hello from process " + std::to_string(port));
-
-    // Keep the main thread alive
     while (true) {
-        std::this_thread::sleep_for(std::chrono::seconds(1));
+        std::cout << "Enter command: ";
+        std::getline(std::cin, input);
+        std::istringstream iss(input);
+
+        iss >> cmd;
+        if (cmd == "connect") {
+            iss >> remote_port;
+            proc.connect_to_process(1, "127.0.0.1", remote_port);
+        } else if (cmd == "send") {
+            iss >> remote_port;
+            if (iss.fail()) {
+                std::cerr << "Invalid port number." << std::endl;
+                continue;
+            }
+            iss.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+            std::getline(std::cin, message);
+            proc.connect_to_process(1, "127.0.0.1", remote_port);
+            proc.send_message(1, message);
+        } else {
+            std::cout << "Unknown command" << std::endl;
+        }
     }
 
     return 0;
